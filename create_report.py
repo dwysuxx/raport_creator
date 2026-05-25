@@ -1,6 +1,6 @@
 import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.styles import Font, Alignment
+from openpyxl.styles import Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 from utils.url_extractor import is_url
@@ -9,7 +9,7 @@ from utils.url_extractor import is_url
 def add_link_to_data(group_name: str, link: str, data) -> None:
     data[group_name].append(link)
 
-def customize_excel(file_path: str) -> None:
+def customize_excel(file_path: str , data:dict) -> None:
 
     """
     This function cutomize Excel file.
@@ -18,9 +18,39 @@ def customize_excel(file_path: str) -> None:
 
     wb = load_workbook(file_path)
     ws = wb.active
-    center_alignment = Alignment(horizontal="center", vertical="center")
 
-    for row in ws.iter_rows():
+
+    max_commits = max([len(links) for links in data.values()])
+    total_cols = 1 + max_commits
+    border_col = total_cols + 1
+
+    print(f"max_column before delete: {ws.max_column}")
+    print(f"border_col: {border_col}")
+    print(f"max_column after delete: {ws.max_column}")
+
+    ws.delete_cols(border_col + 1, 200)
+    ws.column_dimensions[get_column_letter(border_col)].width = 3
+
+    for row in ws.iter_rows(min_col=border_col, max_col=border_col):
+        for cell in row:
+            cell.border = Border()
+            cell.value = None
+
+    ws.insert_rows(1)
+    ws.insert_rows(2)
+
+    project_names = " / ".join(data.keys())
+    last_col_latter = get_column_letter(total_cols)
+    ws.merge_cells(f"A2:{last_col_latter}2")
+
+    cell = ws["A2"]
+    cell.value = project_names
+    cell.font = Font(bold=True , size=12)
+    cell.alignment = Alignment(horizontal="center", vertical="center")
+    cell.border = Border()
+
+    center_alignment = Alignment(horizontal="center", vertical="center")
+    for row in ws.iter_rows(min_row=3):
         for i, cell in enumerate(row):
             cell.alignment = center_alignment
 
@@ -69,4 +99,4 @@ def create_report(data: dict, file_path: str) -> None:
     df = pd.DataFrame(rows)
     df.to_excel(file_path, index=False, header=False)
 
-    customize_excel(file_path)
+    customize_excel(file_path , data)

@@ -1,6 +1,5 @@
 import flet as ft
 import tkinter as tk
-from validators import url as url_validator
 from tkinter import filedialog
 from datetime import date
 from utils.url_extractor import is_url
