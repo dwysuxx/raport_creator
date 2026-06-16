@@ -27,6 +27,34 @@ async def window(page: ft.Page):
         expand=True
     )
 
+    def make_delete(p, i):
+        def delete_item(e):
+            report_data[p].remove(i)
+            if not report_data[p]:
+                del report_data[p]
+            refresh_list()
+            page.update()
+        return delete_item
+
+    def make_tile(p, i):
+        icon = ft.Icons.COMMIT if is_url(str(i)) else ft.Icons.NOTES
+        return ft.ListTile(
+            leading=ft.Icon(icon),
+            title=ft.Text(f"{p} | {i}"),
+            trailing=ft.IconButton(
+                icon=ft.Icons.DELETE_OUTLINE,
+                icon_color=ft.Colors.RED_400,
+                on_click=make_delete(p, i)
+            )
+        )
+
+    def refresh_list():
+        new_controls = []
+        for proj in sorted(report_data.keys()):
+            for item in report_data[proj]:
+                new_controls.append(make_tile(proj, item))
+        added_links_view.controls = new_controls
+
     def on_clear_click(e):
         added_links_view.controls.clear()
         report_data.clear()
@@ -36,27 +64,11 @@ async def window(page: ft.Page):
 
     async def on_add_click(e):
         if link_input.value and project_name.value:
-
             if project_name.value not in report_data:
                 report_data[project_name.value] = []
 
             add_link_to_data(project_name.value, link_input.value, report_data)
-
-            new_ui_controls = []
-            sorted_projects = sorted(report_data.keys())
-
-            for proj in sorted_projects:
-                for item in report_data[proj]:
-
-                    icon_type = ft.Icons.COMMIT if is_url(str(item)) else ft.Icons.NOTES
-
-                    new_commit = ft.ListTile(
-                        leading=ft.Icon(icon_type),
-                        title=ft.Text(f"{proj} | {item}"),
-                    )
-                    new_ui_controls.append(new_commit)
-
-            added_links_view.controls = new_ui_controls
+            refresh_list()
 
             link_input.value = ""
             await link_input.focus()
@@ -65,13 +77,12 @@ async def window(page: ft.Page):
     link_input.on_submit = on_add_click
 
     def on_export_click(e):
-        current_date = date.today().strftime("%d-%m-%Y")
+        current_date = date.today().strftime("%Y-%m-%d")
         dynamic_name = f"report_{current_date}.xlsx"
 
         root = tk.Tk()
         root.withdraw()
         root.attributes('-topmost', True)
-
 
         file_path = filedialog.asksaveasfilename(
             title="Where save raport?",
@@ -103,14 +114,11 @@ async def window(page: ft.Page):
         ft.Text("Monthly Report Generator", size=25, weight=ft.FontWeight.BOLD),
         project_name,
         ft.Divider(height=20, color="transparent"),
-
         ft.Row([
             link_input,
             ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=on_add_click),
         ]),
-
         ft.Text("Added Commits:", size=16, weight=ft.FontWeight.W_500),
-
         ft.Container(
             content=added_links_view,
             border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT),
@@ -118,7 +126,6 @@ async def window(page: ft.Page):
             padding=10,
             expand=True
         ),
-
         ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
@@ -132,7 +139,6 @@ async def window(page: ft.Page):
                 ft.ElevatedButton(
                     "Generate Report",
                     expand=True,
-
                 ),
                 ft.ElevatedButton(
                     "Clear",
